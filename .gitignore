@@ -1,0 +1,30 @@
+# Secrets
+.env
+.env.*
+
+# macOS
+.DS_Store
+
+# Local Claude Code state
+.claude/settings.local.json
+.claude/skills/siraya-model-route-workspace/
+
+# Codex CLI local state (auth, sessions, sqlite)
+codex/
+
+# Test reports (dated session deliverables, kept local)
+20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]_*.md
+siraya_issue_*.md
+
+# Test scripts (local probes)
+test_*.py
+*_uat_test.py
+multi_model_basic.py
+llm_cache.py
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
