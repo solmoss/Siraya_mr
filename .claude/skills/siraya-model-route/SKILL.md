@@ -347,6 +347,8 @@ messages=[{
 
 Different field shape — uses `source` instead of `file_data`. Supported MIME types: `image/jpeg`, `image/png`, `image/gif`, `image/webp`, `application/pdf`.
 
+**Only `base64` source type is supported — `url` source is rejected with 400.**
+
 ```python
 # Image
 {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": "<base64>"}}
@@ -357,11 +359,12 @@ Different field shape — uses `source` instead of `file_data`. Supported MIME t
 
 Full example with the Anthropic SDK:
 ```python
+import base64, anthropic
 client = anthropic.Anthropic(base_url="https://llm.siraya.ai", api_key=KEY)
 with open("report.pdf", "rb") as f:
     pdf_data = base64.standard_b64encode(f.read()).decode()
 
-client.messages.create(
+resp = client.messages.create(
     model="claude-sonnet-4.5",
     max_tokens=1024,
     messages=[{"role": "user", "content": [
@@ -369,6 +372,8 @@ client.messages.create(
         {"type": "text", "text": "Summarise this document."}
     ]}]
 )
+# resp.content may include a ThinkingBlock before the TextBlock — iterate to find text
+texts = [b.text for b in resp.content if hasattr(b, "text")]
 ```
 
 ## Image Generation
@@ -377,16 +382,16 @@ Endpoint: `POST /v1/images/generations`
 
 ```python
 response = client.images.generate(
-    model="imagen-4.0-generate-001",   # or "gpt-image-1", "imagen-4"
+    model="imagen-4.0-generate-001",   # or "gpt-image-2"
     prompt="A cute baby sea otter",
     n=1,
 )
-# response.data[0].b64_json — base64-encoded PNG
+# response.data[0].b64_json — base64-encoded image (no URL)
 import base64, pathlib
 pathlib.Path("out.png").write_bytes(base64.b64decode(response.data[0].b64_json))
 ```
 
-Full model list: [console.siraya.ai/models](https://console.siraya.ai/models). See also `api-reference/generative-model-api/text-to-image/` in the docs.
+Confirmed model IDs: `gpt-image-2`, `imagen-4.0-generate-001`. Response always returns `b64_json` (not `url`). Full list: [console.siraya.ai/models](https://console.siraya.ai/models).
 
 ## Video Generation
 
@@ -397,12 +402,12 @@ import requests, os
 resp = requests.post(
     "https://llm.siraya.ai/v1/videos/generations",
     headers={"Authorization": f"Bearer {os.environ['SIRAYA_API_KEY']}"},
-    json={"model": "veo-3.1-generate-001", "prompt": "A whale breaching at sunset", "seconds": 5}
+    json={"model": "veo-3.1-generate-001", "prompt": "A whale breaching at sunset", "duration": 4}
 )
 video_url = resp.json()["data"][0]["url"]   # hosted on resources.siraya.ai
 ```
 
-Available models (examples): `veo-3.1-generate-001`, `veo3-fast`. Full list on the Model page.
+**`duration`** (not `seconds`) — supported values for veo-3.1: `4`, `6`, `8` (seconds). Passing other values returns 400. Confirmed model ID: `veo-3.1-generate-001`. Full list on the Model page. Generation can take 60–120 s; use a long timeout.
 
 ## Web Search
 
