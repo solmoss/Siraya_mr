@@ -105,6 +105,59 @@ These fields go inside `extra_body` on OpenAI-compat calls (or directly at the t
 
 `anthropic`, `openai`, `google-vertex`, `azure`, `amazon-bedrock`, `deepseek`, `x-ai`, `alibaba`, `byteplus`, `minimax`, `moonshot`, `z-ai`
 
+## Responses API Parameters
+
+`POST /v1/responses` — uses different field names from `/v1/chat/completions`.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `model` | string | Model ID (required) |
+| `input` | string \| array | Prompt text or messages array (required) |
+| `instructions` | string | System-level prompt (replaces system message) |
+| `max_output_tokens` | int | Max output tokens |
+| `tools` | array | Same format as chat completions |
+| `tool_choice` | string | `"auto"` / `"none"` / `"required"` |
+| `reasoning` | object | `{"effort": "low"\|"medium"\|"high"}` — 3 levels only (no `none`/`xhigh`) |
+| `metadata` | object | Arbitrary key-value metadata |
+| `temperature` | float | Sampling temperature |
+| `stream` | bool | SSE streaming |
+
+Response: `response.output` is an array of blocks — `type: "reasoning"` (content has `reasoning_text`) and `type: "message"` (content has `output_text`).
+
+## Usage Response Object
+
+All responses include a `usage` object. Full breakdown:
+
+```json
+{
+  "usage": {
+    "prompt_tokens": 100,
+    "completion_tokens": 50,
+    "total_tokens": 150,
+    "prompt_tokens_details": {
+      "cached_tokens": 80,
+      "cache_write_tokens": 20,
+      "text_tokens": 90,
+      "audio_tokens": 0,
+      "image_tokens": 10,
+      "web_search_requests": 1
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 200,
+      "text_tokens": 50,
+      "audio_tokens": 0,
+      "image_tokens": 0,
+      "accepted_prediction_tokens": 30,
+      "rejected_prediction_tokens": 5
+    }
+  }
+}
+```
+
+- `web_search_requests` — number of native web search calls issued during this request
+- `accepted_prediction_tokens` / `rejected_prediction_tokens` — speculative decoding metrics
+- No `cost` field in the response; actual charges appear in the console Dashboard / Request Logs
+
 ## Endpoints
 
 | Endpoint | Purpose |
@@ -113,6 +166,6 @@ These fields go inside `extra_body` on OpenAI-compat calls (or directly at the t
 | `GET /v1/models` | List models |
 | `POST /v1/embeddings` | Embeddings |
 | `POST /v1/messages` | Anthropic-compat (no `/v1` prefix on base URL) |
-| `POST /v1/responses` | OpenAI Responses API |
-| `POST /v1/images/generations` | Text-to-image |
-| `POST /v1/videos/generations` | Text-to-video |
+| `POST /v1/responses` | OpenAI Responses API (stateful, `input`/`output` format) |
+| `POST /v1/images/generations` | Text-to-image (response: `data[].b64_json`) |
+| `POST /v1/videos/generations` | Text-to-video (response: `data[].url`); params: `model`, `prompt`, `seconds` |

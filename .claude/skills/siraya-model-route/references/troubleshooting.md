@@ -63,3 +63,12 @@ If prompt caching isn't reducing cost:
 - `: Siraya Model Router PROCESSING` comments are keepalives — filter them
 - Aborting the client connection halts billing — use `AbortController` (TS) or close response (Python)
 - Set `stream_options: {"include_usage": true}` to get final token counts in the last chunk
+
+## Latency
+
+Siraya adds ~100ms of overhead via Cloudflare Workers edge routing. Two known sources of extra latency:
+
+- **Cold edge cache** — first request to a new region may be slower; normalises within ~5 minutes.
+- **Low credit balance** — single-digit dollar balances trigger more aggressive cache expiration. Recommended minimum: **$50–100** for consistent performance.
+
+Provider routing failures also cause latency spikes on the first attempt; the system routes around failing providers on subsequent calls.

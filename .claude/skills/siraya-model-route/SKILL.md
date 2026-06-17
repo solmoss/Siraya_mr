@@ -169,6 +169,50 @@ for chunk in stream:
         print(chunk.choices[0].delta.content, end="")
 ```
 
+## OpenAI Responses API
+
+`POST /v1/responses` — stateful alternative to `/v1/chat/completions`. Uses `input` + `instructions` instead of `messages`, returns `output` blocks instead of `choices`.
+
+```python
+response = client.responses.create(
+    model="deepseek-v4-flash",
+    input="What is 25 × 37?",                      # string or messages array
+    instructions="You are a helpful math tutor.",   # system-level prompt
+    max_output_tokens=1024,
+)
+for block in response.output:
+    if block.type == "message":
+        for content in block.content:
+            print(content.output_text)
+```
+
+**With reasoning:**
+```python
+response = client.responses.create(
+    model="gpt-5.4",
+    input="Solve step by step: ...",
+    reasoning={"effort": "high"},   # "low" | "medium" | "high"
+)
+# response.output contains a reasoning block (type="reasoning") then a message block
+for block in response.output:
+    if block.type == "reasoning":
+        print("Thinking:", block.content[0].reasoning_text)
+    elif block.type == "message":
+        print("Answer:", block.content[0].output_text)
+```
+
+**With tool calling:**
+```python
+response = client.responses.create(
+    model="deepseek-v4-flash",
+    input="What's the weather in Tokyo?",
+    tools=tools,          # same tool definition format as chat completions
+    tool_choice="auto",
+)
+```
+
+Note: Responses API effort levels are `low` / `medium` / `high` (3 levels) — the `none` and `xhigh` levels only exist in the Chat Completions `reasoning.effort` field.
+
 ## Prompt Caching
 
 Cuts repeated-input cost by ~90%. Two modes:
@@ -280,6 +324,8 @@ On the Anthropic-compat endpoint, the native `thinking: {...}` block works as we
 
 ## Multimodal Input
 
+### OpenAI-compat endpoint
+
 **Image (URL or base64):**
 ```python
 messages=[{
@@ -296,6 +342,67 @@ messages=[{
 ```python
 {"type": "file", "file": {"file_data": "data:application/pdf;base64,..."}}
 ```
+
+### Anthropic-compat endpoint
+
+Different field shape — uses `source` instead of `file_data`. Supported MIME types: `image/jpeg`, `image/png`, `image/gif`, `image/webp`, `application/pdf`.
+
+```python
+# Image
+{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": "<base64>"}}
+
+# PDF document
+{"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": "<base64>"}}
+```
+
+Full example with the Anthropic SDK:
+```python
+client = anthropic.Anthropic(base_url="https://llm.siraya.ai", api_key=KEY)
+with open("report.pdf", "rb") as f:
+    pdf_data = base64.standard_b64encode(f.read()).decode()
+
+client.messages.create(
+    model="claude-sonnet-4.5",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": [
+        {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": pdf_data}},
+        {"type": "text", "text": "Summarise this document."}
+    ]}]
+)
+```
+
+## Image Generation
+
+Endpoint: `POST /v1/images/generations`
+
+```python
+response = client.images.generate(
+    model="imagen-4.0-generate-001",   # or "gpt-image-1", "imagen-4"
+    prompt="A cute baby sea otter",
+    n=1,
+)
+# response.data[0].b64_json — base64-encoded PNG
+import base64, pathlib
+pathlib.Path("out.png").write_bytes(base64.b64decode(response.data[0].b64_json))
+```
+
+Full model list: [console.siraya.ai/models](https://console.siraya.ai/models). See also `api-reference/generative-model-api/text-to-image/` in the docs.
+
+## Video Generation
+
+Endpoint: `POST /v1/videos/generations` (not yet in the OpenAI SDK — use raw HTTP).
+
+```python
+import requests, os
+resp = requests.post(
+    "https://llm.siraya.ai/v1/videos/generations",
+    headers={"Authorization": f"Bearer {os.environ['SIRAYA_API_KEY']}"},
+    json={"model": "veo-3.1-generate-001", "prompt": "A whale breaching at sunset", "seconds": 5}
+)
+video_url = resp.json()["data"][0]["url"]   # hosted on resources.siraya.ai
+```
+
+Available models (examples): `veo-3.1-generate-001`, `veo3-fast`. Full list on the Model page.
 
 ## Web Search
 
