@@ -113,7 +113,7 @@ completion = client.chat.completions.create(
 | `order` | array | — | Preferred order, e.g. `["anthropic", "azure"]` |
 | `only` | array | — | Whitelist providers |
 | `ignore` | array | — | Blacklist providers |
-| `require_parameters` | bool | `false` | Only route to providers that actually support every requested param |
+| `require_parameters` | array of string | — | Type unclear — avoid until confirmed. Live testing (2026-06-20) shows passing a bool (e.g. `true`) returns `400: json: cannot unmarshal bool into Go struct field ProviderPreferences.provider.require_parameters of type []string`. The API expects a string array, but the exact element values (param names? provider IDs?) are not yet confirmed. |
 
 **Provider IDs:** `anthropic`, `openai`, `google-vertex`, `azure`, `amazon-bedrock`, `deepseek`, `x-ai`, `alibaba`, `byteplus`, `minimax`, `moonshot`, `z-ai`. Per-provider model availability lives in `references/full-params.md`, or list live via:
 
@@ -138,9 +138,9 @@ extra_body={"provider": {"ignore": ["deepseek"]}}
 extra_body={"zdr": True}
 ```
 
-### Why `require_parameters: true` matters
+### Why `require_parameters` matters
 
-If you request non-standard params (tools, `reasoning`, `response_format`) without it, Siraya may route to a provider that silently ignores those fields and returns a plain completion. Set it whenever the param must actually take effect.
+If you request non-standard params (tools, `reasoning`, `response_format`) without it, Siraya may route to a provider that silently ignores those fields and returns a plain completion. In principle this should be set whenever the param must actually take effect — but the correct value shape is unconfirmed (see table above); passing a bool returns a 400. Until confirmed, omit this field and instead pin the provider via `only`/`order` to guarantee parameter support.
 
 ## Using Claude Code with Siraya as backend
 
@@ -271,7 +271,7 @@ if response.choices[0].finish_reason == "tool_calls":
         ...
 ```
 
-When pinning the provider via `only`/`order`, also set `require_parameters: True` — otherwise Siraya may fall back to a provider that doesn't honor tools and you'll get plain text back.
+When pinning the provider via `only`/`order`, that alone is the safest way to guarantee tool support — `require_parameters` is not usable yet since its expected value shape (array of string, not bool) is unconfirmed; see the Provider Routing table above.
 
 ## Structured Outputs
 

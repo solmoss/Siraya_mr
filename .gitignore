@@ -28,3 +28,7 @@ __pycache__/
 *.pyo
 .venv/
 venv/
+
+# Video workflow sample/test media (large binary files, kept local)
+video_workflow/*.mov
+video_workflow/*.mp4

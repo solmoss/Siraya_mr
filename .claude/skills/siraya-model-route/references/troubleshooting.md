@@ -52,7 +52,7 @@ If prompt caching isn't reducing cost:
 - **Wrong provider selected:** explicitly set `provider.order` or `provider.only`
 - **Unexpected fallback:** set `allow_fallbacks: false`
 - **Higher latency than expected:** sort by `latency` instead of `price`
-- **`require_parameters: true`** is useful when using non-standard params (tools, reasoning) — without it Siraya may route to a provider that silently ignores them
+- **`require_parameters`** is intended for use with non-standard params (tools, reasoning) — without it Siraya may route to a provider that silently ignores them. However, it expects an array of string, not a bool — passing `true` returns `400: json: cannot unmarshal bool into Go struct field ProviderPreferences.provider.require_parameters of type []string`. The correct element values are unconfirmed; avoid this field until confirmed and pin the provider via `only`/`order` instead
 
 ## ZDR Surprises
 
