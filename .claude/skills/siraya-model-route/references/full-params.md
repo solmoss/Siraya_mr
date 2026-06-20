@@ -93,8 +93,10 @@ These fields go inside `extra_body` on OpenAI-compat calls (or directly at the t
     "allow_fallbacks": true,
     "order": ["anthropic", "azure"],
     "only": ["openai"],
-    "ignore": ["deepseek"],
-    "require_parameters": true
+    "ignore": ["deepseek"]
+    // "require_parameters": type unclear — avoid until confirmed.
+    // API expects array of string, not bool; passing `true` returns 400
+    // (json: cannot unmarshal bool into Go struct field ...require_parameters of type []string)
   },
   "transforms": ["middle-out"],
   "zdr": true
